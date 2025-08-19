@@ -3,7 +3,7 @@ name = "spread-benchmark"
 version = "0.1.0"
 description = "High-precision spread option valuation using the Hurd-Zhou Fourier formula with adaptive Gauss-Legendre quadrature integration"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "mpmath>=1.3.0",
     "numpy>=2.3.2",
