@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from .base import SpreadModel
 
+
 class MertonNormalJumpsModel(SpreadModel):
     """Diffusion + (common & idiosyncratic) normally-distributed jumps (driftless)."""
 
@@ -46,29 +47,47 @@ class MertonNormalJumpsModel(SpreadModel):
     def phi(self, u1: np.ndarray, u2: np.ndarray) -> np.ndarray:
         u1 = np.asarray(u1, dtype=np.complex128)
         u2 = np.asarray(u2, dtype=np.complex128)
-        T = self.T
 
-        # Diffusion exponent (driftless)
-        s1, s2, rho = self.sigma1, self.sigma2, self.rho
-        diff = -0.5 * (
-            (s1**2) * u1 * u1 + (s2**2) * u2 * u2 + 2.0 * rho * s1 * s2 * u1 * u2
+        def _compute_jump_compensator(mu: float, xi: float) -> float:
+            return np.exp(mu + 0.5 * xi**2) - 1.0
+
+        def _compute_characteristic_exponent(u: np.ndarray, mu: float, xi: float) -> np.ndarray:
+            return np.exp(1j * u * mu - 0.5 * xi**2 * u**2)
+
+        # Quadratic forms for u1 and u2
+        u1_sq, u2_sq = u1**2, u2**2
+        u1u2 = u1 * u2
+
+        # Diffusion component: bivariate normal
+        diffusion = -0.5 * (
+            self.sigma1**2 * u1_sq + self.sigma2**2 * u2_sq + 
+            2.0 * self.rho * self.sigma1 * self.sigma2 * u1u2
         )
 
-        # Idiosyncratic normal jumps: λ (exp(i u μ - ½ ξ^2 u^2) - 1)
-        idio1 = self.lam1 * (np.exp(1j * u1 * self.mu1 - 0.5 * (self.xi1**2) * u1 * u1) - 1.0)
-        idio2 = self.lam2 * (np.exp(1j * u2 * self.mu2 - 0.5 * (self.xi2**2) * u2 * u2) - 1.0)
-
-        # Common bivariate normal jump
-        mu_c1, mu_c2 = self.mu_c1, self.mu_c2
-        xi_c1, xi_c2, rho_y = self.xi_c1, self.xi_c2, self.rho_y
-        common = np.exp(
-            1j * (u1 * mu_c1 + u2 * mu_c2)
-            - 0.5 * (
-                (xi_c1**2) * u1 * u1
-                + (xi_c2**2) * u2 * u2
-                + 2.0 * rho_y * xi_c1 * xi_c2 * u1 * u2
+        # Jump components
+        idio_jump1 = self.lam1 * (_compute_characteristic_exponent(u1, self.mu1, self.xi1) - 1.0)
+        idio_jump2 = self.lam2 * (_compute_characteristic_exponent(u2, self.mu2, self.xi2) - 1.0)
+        
+        common_jump_inner = np.exp(
+            1j * (u1 * self.mu_c1 + u2 * self.mu_c2) - 0.5 * (
+                self.xi_c1**2 * u1_sq + self.xi_c2**2 * u2_sq + 
+                2.0 * self.rho_y * self.xi_c1 * self.xi_c2 * u1u2
             )
         )
+        common_jump = self.lam_c * (common_jump_inner - 1.0)
+        
+        jumps = idio_jump1 + idio_jump2 + common_jump
 
-        jumps = idio1 + idio2 + self.lam_c * (common - 1.0)
-        return np.exp(T * (diff + jumps))
+        # Risk-neutral drift with jump compensators
+        k_common = (_compute_jump_compensator(self.mu_c1, self.xi_c1),
+                   _compute_jump_compensator(self.mu_c2, self.xi_c2))
+        k_idio = (_compute_jump_compensator(self.mu1, self.xi1),
+                 _compute_jump_compensator(self.mu2, self.xi2))
+
+        drift_terms = (
+            self.r - self.q1 - 0.5 * self.sigma1**2 - self.lam_c * k_common[0] - self.lam1 * k_idio[0],
+            self.r - self.q2 - 0.5 * self.sigma2**2 - self.lam_c * k_common[1] - self.lam2 * k_idio[1]
+        )
+        drift = 1j * (u1 * drift_terms[0] + u2 * drift_terms[1])
+
+        return np.exp(self.T * (drift + diffusion + jumps))

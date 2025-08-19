@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 from .base import SpreadModel
 
+
 class GBMModel(SpreadModel):
     """Bivariate GBM diffusion under Q (drift handled via forwards/discount)."""
 
@@ -26,6 +27,19 @@ class GBMModel(SpreadModel):
     def phi(self, u1: np.ndarray, u2: np.ndarray) -> np.ndarray:
         u1 = np.asarray(u1, dtype=np.complex128)
         u2 = np.asarray(u2, dtype=np.complex128)
-        s1, s2, rho, T = self.sigma1, self.sigma2, self.rho, self.T
-        quad = -0.5 * ((s1**2) * u1 * u1 + (s2**2) * u2 * u2 + 2.0 * rho * s1 * s2 * u1 * u2)
-        return np.exp(T * quad)
+        r, q1, q2, s1, s2, rho, T = (
+            self.r,
+            self.q1,
+            self.q2,
+            self.sigma1,
+            self.sigma2,
+            self.rho,
+            self.T,
+        )
+        linear = (
+            1j * (u1 * (r - q1) + u2 * (r - q2) - 0.5 * (s1**2 * u1 + s2**2 * u2))
+        )
+        quad = -0.5 * (
+            (s1**2) * u1 * u1 + (s2**2) * u2 * u2 + 2.0 * rho * s1 * s2 * u1 * u2
+        )
+        return np.exp(T * (linear + quad))

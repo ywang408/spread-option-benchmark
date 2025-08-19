@@ -39,6 +39,7 @@ class HestonSVModel(SpreadModel):
         u1 = np.asarray(u1, dtype=np.complex128)
         u2 = np.asarray(u2, dtype=np.complex128)
 
+        r, q1, q2 = self.r, self.q1, self.q2
         s1, s2 = self.sigma1, self.sigma2
         rv = self.sigmav
         rho12, rho1v, rho2v = self.rho12, self.rho1v, self.rho2v
@@ -58,6 +59,7 @@ class HestonSVModel(SpreadModel):
         tmp = 2.0 * theta - (theta - gamma) * (1.0 - exp_neg_theta_T)
 
         term1 = (2.0 * zeta) * (1.0 - exp_neg_theta_T) / tmp * v0
+        term2 = 1j * ((r - q1) * u1 + (r - q2) * u2) * T
         term3 = -kappa * mu / (rv**2) * (2.0 * np.log(tmp / (2.0 * theta)) + (theta - gamma) * T)
 
-        return np.exp(term1 + term3)
+        return np.exp(term1 + term2 + term3)
