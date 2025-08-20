@@ -84,23 +84,23 @@ $$
 Refine $n \mapsto 2n$ until
 
 $$
-|v(2n) - v(n)| \le \texttt{disc\_budget} = 0.25\cdot\texttt{tol}.
+\lvert v(2n) - v(n) \rvert \le \mathrm{disc}_{\mathrm{budget}} = 0.25\cdot \mathrm{tol}.
 $$
 
-Since $v(2n)-v(n)=E_n-E_{2n}$ and $E_{2n}\ll E_n$ for smooth integrands, this difference is a reliable proxy for the discretization error at $[-U,U]^2$.
+Since $v(2n)-v(n)=E_n-E_{2n}$ and $E_{2n}\ll E_n$ for smooth integrands, this difference is a reliable proxy for the discretization error on $[-U,U]^2$.
 
 ### Tail Control (Increasing $U$ at Nearly Constant $h$)
 
-Having fixed the discretization at $U$, we enlarge the box $U \leftarrow \rho U$ (default $\rho=1.5$) and scale $n$ so that $2U/n\approx h_{\text{tgt}}$. Let
+Having fixed the discretization at $U$, enlarge the box $U \leftarrow \rho U$ (default $\rho=1.5$) and scale $n$ so that $2U/n\approx h_{\mathrm{tgt}}$. Let
 
 $$
-v(U_{\text{old}}), \quad v(U_{\text{new}}).
+v(U_{\mathrm{old}}),\quad v(U_{\mathrm{new}}).
 $$
 
 Iterate until
 
 $$
-|v(U_{\text{new}}) - v(U_{\text{old}})| \le \texttt{tail\_budget} = 0.75\cdot\texttt{tol}.
+\lvert v(U_{\mathrm{new}}) - v(U_{\mathrm{old}}) \rvert \le \mathrm{tail}_{\mathrm{budget}} = 0.75\cdot \mathrm{tol}.
 $$
 
 Maintaining $h$ approximately constant isolates the tail contribution; the discretization level remains comparable across successive boxes.
