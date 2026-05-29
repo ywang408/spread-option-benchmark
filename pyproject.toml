@@ -1,11 +1,21 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "spread-benchmark"
+name = "spread-option-benchmark"
 version = "0.1.0"
-description = "High-precision spread option valuation using the Hurd-Zhou Fourier formula with adaptive Gauss-Legendre quadrature integration"
+description = "High-precision spread-option valuation via the Hurd-Zhou Fourier formula with adaptive Gauss-Legendre quadrature and a stop-rule precision record."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
+# Loose lower bounds so `pip install git+...` reuses Colab's preinstalled
+# numpy/scipy instead of forcing a disruptive upgrade. mpmath is only a
+# fallback used if scipy's loggamma is unavailable.
 dependencies = [
-    "mpmath>=1.3.0",
-    "numpy>=2.3.2",
-    "scipy>=1.16.1",
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "mpmath>=1.2",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -5,6 +5,7 @@ from numpy import pi
 from .quadrature import gl_square_nodes_weights
 from .utils import kahan_sum_real
 from .payoff import payoff_transform
+from .adaptive import adaptive_price, AdaptiveResult
 
 if TYPE_CHECKING:
     from .models.base import SpreadModel
@@ -87,6 +88,20 @@ class SpreadPricer:
                     }
                 return vU
             U, n, base = U2, n2, vU
+
+    def price_benchmark(self, K: float, tol: float = 1e-11, U0: float = 40.0,
+                        h_max: float = 0.02) -> AdaptiveResult:
+        """Adaptive benchmark price with a stop rule.
+
+        Targets ``tol`` but bounds the refinement and records the achieved
+        precision per case (``eps_obs``, ``recorded_precision``, ``met_tol``)
+        rather than looping forever. The reported value is ``result.price_tail``.
+        """
+        b1 = np.log(self.model.S1 / K)
+        b2 = np.log(self.model.S2 / K)
+        B = max(abs(b1), abs(b2), abs(b1 + b2))
+        return adaptive_price(lambda U, n: self._price_fixed(K, U, n),
+                              B, tol=tol, U0=U0, h_max=h_max)
 
     def price_strikes(self, Ks: np.ndarray, tol: float = 1e-9, **kwargs) -> np.ndarray:
         Ks = np.asarray(Ks, dtype=float)

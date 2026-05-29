@@ -148,9 +148,9 @@ for K in Ks:
 
 ### Running the Benchmark
 
-```bash
-python main.py
-```
+`main.py` is a minimal single-model example. To regenerate the full set of
+benchmark prices (all five models, resumable), use `gen_all.py` / the
+`spread_benchmark.gen_all` API described under *Reproducing the benchmarks* below.
 
 ---
 
@@ -189,6 +189,52 @@ No changes to the pricer are required.
   * runtime statistics and environment (Python/NumPy/SciPy versions).
 
 These diagnostics enable comparison across models and settings with a common accuracy target.
+
+## Reproducing the benchmarks (resumable / Colab)
+
+`gen_all.py` regenerates the 2D benchmark prices for all five models. It targets
+a precision `--tol` but applies a **stop rule**: each refinement phase gives up
+after a bounded number of iterations (or earlier once round-off prevents further
+improvement) and records the achieved precision (`eps_obs`, `recorded_precision`,
+`met_tol`) per case rather than looping forever.
+
+Each `(model, strike)` case is written to its own JSON file under
+`benchmarks/2d/_cases/` the moment it finishes, and the per-model
+`benchmarks/2d/<model>_benchmark.csv` is re-assembled after every case. An
+interrupted run therefore loses nothing, and a restart skips completed cases.
+
+Local (from a clone):
+
+```bash
+uv sync
+uv run python gen_all.py --out-dir ./benchmarks/2d          # all models, resumable
+uv run python gen_all.py --out-dir ./benchmarks/2d --tol 1e-10
+uv run python gen_all.py --model gbm_2d --strike 2.0 --out-dir ./benchmarks/2d
+```
+
+Colab (pip-install the package, write to Drive so a restart resumes):
+
+```python
+%pip install -U "git+https://github.com/ywang408/spread-option-benchmark.git@main"
+from google.colab import drive; drive.mount('/content/drive')
+
+from spread_benchmark import gen_all, gen_2d, gen_case
+OUT = "/content/drive/MyDrive/spread_benchmark/2d"
+
+gen_all(out_dir=OUT)                       # everything, resumable across restarts
+# or split the work across cells/processes to go faster:
+gen_2d(OUT, models=["vg_2d"])
+gen_case("gbm_2d", 2.0, out_dir=OUT)
+```
+
+A quick local convergence + plumbing check (seconds, loose tol):
+
+```bash
+uv run python smoke_test.py
+```
+
+The committed 3D benchmarks already record their achieved precision and are not
+regenerated here.
 
 ## Reference
 
